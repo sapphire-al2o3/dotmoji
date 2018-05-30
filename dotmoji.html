@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+	<meta charset="UTF-8">
+	<title>moji</title>
+	<style>
+		canvas {
+			border: 1px solid #AAA;
+			background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQAQMAAAAlPW0iAAAABlBMVEXk6Oz///+sAbTXAAAAEElEQVQI12Ng+M+AFeEQBgB+vw/xWs16mgAAAABJRU5ErkJggg==");
+		}
+		p {
+			margin: 0 4px;
+		}
+		input[type="number"] {
+			width: 60px;
+		}
+		label {
+			margin-right: 8px;
+			font-size: 12px;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="moji" width="256" height="256"></canvas>
+	<div>
+		<p><label>塗りつぶし数</label><input type="number" id="block" value="8" min="1" max="11"></p>
+		<p><label>シャッフル</label><input type="checkbox" id="shuffle"></p>
+		<p><label>1ピクセル除外</label><input type="checkbox" id="cont"></p>
+		<p><label>回転除外</label><input type="checkbox" id="rot"></p>
+		<p><label>左右反転除外</label><input type="checkbox" id="horz"></p>
+		<p><label>上下反転除外</label><input type="checkbox" id="vert"></p>
+		<p><label>背景透過</label><input type="checkbox" id="transparent"></p>
+		<p><label>白黒反転</label><input type="checkbox" id="nega"></p>
+		<button id="generate">Generate</button>
+	</div>
+	<script>
+		(function() {
+			
+			function countBits(b) {
+				b = b - ((b >> 1) & 0x55555555);
+				b = (b & 0x33333333) + ((b >> 2) & 0x33333333);
+				return (((b + (b >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+			}
+			
+			function bit(b, i) {
+				return (b & (1 << i)) > 0;
+			}
+			
+			function checkClose3x4(b, i) {
+				if(!bit(b, i)) return true;
+				let x = i % 3,
+					y = (i / 3) ^ 0,
+					l = x - 1,
+					r = x + 1,
+					t = y - 1,
+					d = y + 1;
+				if(l >= 0 && bit(b, i - 1)) return true;
+				if(r < 3 && bit(b, i + 1)) return true;
+				if(t >= 0 && bit(b, i - 3)) return true;
+				if(d < 4 && bit(b, i + 3)) return true;
+				return false;
+			}
+			
+			function shuffle(a) {
+				for(let i = 0; i < a.length; i++) {
+					let r = Math.random() * a.length ^ 0;
+					let t = a[i];
+					a[i] = a[r];
+					a[r] = t;
+				}
+			}
+			
+			function reverseBits12(b) {
+				let ret = 0;
+				for(let i = 0; i < 12; i++) {
+					ret = ret << 1;
+					ret |= (b & (1 << i)) >> i;
+				}
+				return ret;
+			}
+			
+			function swapBit(b, s, d) {
+				return (b & ~((1 << s) | (1 << d))) | (((b >> d) & 1) << s) | (((b >> s) & 1) << d);
+			}
+			
+			function mirrorHorz3x4(b) {
+				b = swapBit(b, 0, 2);
+				b = swapBit(b, 3, 5);
+				b = swapBit(b, 6, 8);
+				b = swapBit(b, 9, 11);
+				return b;
+			}
+			
+			function mirrorVert3x4(b) {
+				b = swapBit(b, 0, 9);
+				b = swapBit(b, 1, 10);
+				b = swapBit(b, 2, 11);
+				return b;
+			}
+			
+			let canvas = document.getElementById('moji'),
+				ctx = canvas.getContext('2d');
+			
+			let block = 8;
+			
+			let $shuffle = document.getElementById('shuffle'),
+				$cont = document.getElementById('cont'),
+				$rot = document.getElementById('rot'),
+				$nega = document.getElementById('nega'),
+				$trans = document.getElementById('transparent'),
+				$horz = document.getElementById('horz'),
+				$vert = document.getElementById('vert');
+			
+			function generate() {
+				
+				let pat = [];
+				for(let i = 0; i < (1 << 12); i++) {
+					let n = countBits(i);
+					if(n === block) {
+						pat.push(i);
+					}
+				}
+				
+				if($shuffle.checked) {
+					shuffle(pat);
+				}
+				
+				if($rot.checked) {
+					for(let i = 0; i < pat.length; i++) {
+						let p = pat[i];
+						let rp = reverseBits12(p);
+						for(j = pat.length - 1; j > i; j--) {
+							if(rp === pat[j]) {
+								pat[j] = 0;
+								break;
+							}
+						}
+					}
+				}
+				
+				if($horz.checked) {
+					for(let i = 0; i < pat.length; i++) {
+						let p = pat[i];
+						let mp = mirrorHorz3x4(p);
+						for(j = pat.length - 1; j > i; j--) {
+							if(mp === pat[j]) {
+								pat[j] = 0;
+								break;
+							}
+						}
+					}
+				}
+				
+				if($vert.checked) {
+					for(let i = 0; i < pat.length; i++) {
+						let p = pat[i];
+						let mp = mirrorVert3x4(p);
+						for(j = pat.length - 1; j > i; j--) {
+							if(mp === pat[j]) {
+								pat[j] = 0;
+								break;
+							}
+						}
+					}
+				}
+				
+
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+				let size = 128;
+				let img = new Uint8Array(size * size);
+				let offsetX = 1,
+					offsetY = 1;
+
+				let total = 0;
+				let cont = $cont.checked;
+				let nega = $nega.checked;
+				let trans = $trans.checked;
+				let front = nega ? 0 : 1;
+				let back = trans ? 255 : nega ? 1 : 0;
+				let color = [0, 255, 0];
+
+				for(let i = 0; i < img.length; i++) {
+					img[i] = back;
+				}
+				
+				for(let i = 0; i < pat.length; i++) {
+
+					if(offsetX + 4 >= size) {
+						offsetX = 1;
+						offsetY += 5;
+					}
+
+					if(offsetY + 5 >= size) {
+						break;
+					}
+
+					let p = pat[i];
+					
+					if(p === 0) {
+						continue;
+					}
+					
+					if(cont) {
+						let br = false;
+						for(let k = 0; k < 12; k++) {
+							if(!checkClose3x4(p, k)) {
+								br = true;
+								break;
+							}
+						}
+
+						if(br) {
+							continue;
+						}
+					}
+
+					for(let y = 0; y < 4; y++) {
+						for(let x = 0; x < 3; x++) {
+							let b = y * 3 + x;
+							let idx = (offsetY + y) * size + offsetX + x;
+							if((p & (1 << b)) > 0) {
+								img[idx] = front;
+							} else {
+								img[idx] = back;
+							}
+						}
+					}
+
+					offsetX += 4;
+					total++;
+				}
+
+				let ret = ctx.getImageData(0, 0, canvas.width, canvas.height),
+					w = ret.width,
+					data = ret.data;
+				
+				let scale = 2;
+				
+				for(let i = 0; i < ret.height; i++) {
+					let y = i / scale ^ 0;
+					for(let j = 0; j < ret.width; j++) {
+						let x = j / scale ^ 0;
+						let idx = (i * w + j) * 4;
+						let b = img[y * size + x];
+						if(b === 255) {
+							data[idx + 0] = 0;
+							data[idx + 1] = 0;
+							data[idx + 2] = 0;
+							data[idx + 3] = 0;
+						} else {
+							let y = 255 * b;
+							data[idx + 0] = y;
+							data[idx + 1] = y;
+							data[idx + 2] = y;
+							data[idx + 3] = 255;
+						}
+					}
+				}
+				
+				ctx.putImageData(ret, 0, 0);
+			}
+			
+			generate();
+			
+			let $block = document.getElementById('block');
+			
+//			document.getElementById('block').addEventListener('change', function() {
+//				block = parseInt(this.value, 10);
+//				generate();
+//			}, false);
+			
+			document.getElementById('generate').addEventListener('click', ()=>{
+				block = parseInt($block.value, 10);
+				generate();
+			});
+		})();
+	</script>
+</body>
+</html>
