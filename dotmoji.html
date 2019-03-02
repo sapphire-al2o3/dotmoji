@@ -38,7 +38,8 @@
 		<p><label>白黒反転</label><input type="checkbox" id="nega"></p>
 		<button id="generate">Generate</button>
 		<p><label>オフセット</label><input type="checkbox" id="offset" checked></p>
-		<p><label>マージン</label><input type="checkbox" id="margin" checked></p>
+		<p><label>マージン上下</label><input type="number" id="marginTop" value="1"></p>
+		<p><label>マージン左右</label><input type="number" id="marginLeft" value="1"></p>
 	</div>
 	<script>
 		(function() {
@@ -122,7 +123,8 @@
 				$vert = document.getElementById('vert'),
 				$size = document.getElementById('size'),
 				$offset = document.getElementById('offset'),
-				$margin = document.getElementById('margin');
+				$marginTop = document.getElementById('marginTop'),
+				$marginLeft = document.getElementById('marginLeft');
 
 			function generate() {
 				
@@ -184,12 +186,8 @@
 					top = 1;
 				}
 
-				let marginLeft = 0,
-					marginTop = 0;
-				if($margin.checked) {
-					marginLeft = 1;
-					marginTop = 1;
-				}
+				let marginLeft = parseInt($marginLeft.value, 10),
+					marginTop = parseInt($marginTop.value, 10);
 				
 				let imageSize = parseInt($size.value, 10);
 				canvas.width = imageSize;
@@ -258,7 +256,7 @@
 						}
 					}
 
-					offsetX += 4;
+					offsetX += 3 + marginLeft;
 					total++;
 				}
 
