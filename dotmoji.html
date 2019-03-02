@@ -37,6 +37,8 @@
 		<p><label>背景透過</label><input type="checkbox" id="transparent"></p>
 		<p><label>白黒反転</label><input type="checkbox" id="nega"></p>
 		<button id="generate">Generate</button>
+		<p><label>オフセット</label><input type="checkbox" id="offset" checked></p>
+		<p><label>マージン</label><input type="checkbox" id="margin" checked></p>
 	</div>
 	<script>
 		(function() {
@@ -118,7 +120,9 @@
 				$trans = document.getElementById('transparent'),
 				$horz = document.getElementById('horz'),
 				$vert = document.getElementById('vert'),
-				$size = document.getElementById('size');
+				$size = document.getElementById('size'),
+				$offset = document.getElementById('offset'),
+				$margin = document.getElementById('margin');
 
 			function generate() {
 				
@@ -172,6 +176,20 @@
 						}
 					}
 				}
+
+				let left = 0,
+					top = 0;
+				if($offset.checked) {
+					left = 1;
+					top = 1;
+				}
+
+				let marginLeft = 0,
+					marginTop = 0;
+				if($margin.checked) {
+					marginLeft = 1;
+					marginTop = 1;
+				}
 				
 				let imageSize = parseInt($size.value, 10);
 				canvas.width = imageSize;
@@ -182,8 +200,8 @@
 				let scale = 2;
 				let size = imageSize / scale;
 				let img = new Uint8Array(size * size);
-				let offsetX = 1,
-					offsetY = 1;
+				let offsetX = left,
+					offsetY = top;
 
 				let total = 0;
 				let cont = $cont.checked;
@@ -199,12 +217,12 @@
 				
 				for(let i = 0; i < pat.length; i++) {
 
-					if(offsetX + 4 >= size) {
-						offsetX = 1;
-						offsetY += 5;
+					if(offsetX + 4 > size) {
+						offsetX = left;
+						offsetY += 4 + marginTop;
 					}
 
-					if(offsetY + 5 >= size) {
+					if(offsetY + 4 + marginTop > size) {
 						break;
 					}
 
