@@ -37,7 +37,8 @@
 		<p><label>背景透過</label><input type="checkbox" id="transparent"></p>
 		<p><label>白黒反転</label><input type="checkbox" id="nega"></p>
 		<button id="generate">Generate</button>
-		<p><label>オフセット</label><input type="checkbox" id="offset" checked></p>
+		<p><label>オフセット上</label><input type="number" id="offsetTop" value="1"></p>
+		<p><label>オフセット左</label><input type="number" id="offsetLeft" value="1"></p>
 		<p><label>マージン上下</label><input type="number" id="marginTop" value="1"></p>
 		<p><label>マージン左右</label><input type="number" id="marginLeft" value="1"></p>
 	</div>
@@ -122,9 +123,10 @@
 				$horz = document.getElementById('horz'),
 				$vert = document.getElementById('vert'),
 				$size = document.getElementById('size'),
-				$offset = document.getElementById('offset'),
-				$marginTop = document.getElementById('marginTop'),
-				$marginLeft = document.getElementById('marginLeft');
+				$offsetLeft = document.getElementById('offsetLeft'),
+				$offsetTop = document.getElementById('offsetTop'),
+				$marginLeft = document.getElementById('marginLeft'),
+				$marginTop = document.getElementById('marginTop');
 
 			function generate() {
 				
@@ -179,12 +181,8 @@
 					}
 				}
 
-				let left = 0,
-					top = 0;
-				if($offset.checked) {
-					left = 1;
-					top = 1;
-				}
+				let left = parseInt($offsetLeft.value, 10),
+					top = parseInt($offsetTop.value, 10);
 
 				let marginLeft = parseInt($marginLeft.value, 10),
 					marginTop = parseInt($marginTop.value, 10);
@@ -220,7 +218,7 @@
 						offsetY += 4 + marginTop;
 					}
 
-					if(offsetY + 4 + marginTop > size) {
+					if(offsetY + 4 + marginTop - top > size) {
 						break;
 					}
 
