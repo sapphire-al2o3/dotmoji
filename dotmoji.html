@@ -27,6 +27,7 @@
 	<h1>文字っぽいドットジェネレーター</h1>
 	<canvas id="moji" width="256" height="256"></canvas>
 	<div>
+		<p><label>画像サイズ</label><select id="size"><option value="256">256</option><option value="128">128</option><option value="64">64</option></select></p>
 		<p><label>塗りつぶし数</label><input type="number" id="block" value="8" min="1" max="11"></p>
 		<p><label>シャッフル</label><input type="checkbox" id="shuffle"></p>
 		<p><label>1ピクセル除外</label><input type="checkbox" id="cont"></p>
@@ -116,8 +117,9 @@
 				$nega = document.getElementById('nega'),
 				$trans = document.getElementById('transparent'),
 				$horz = document.getElementById('horz'),
-				$vert = document.getElementById('vert');
-			
+				$vert = document.getElementById('vert'),
+				$size = document.getElementById('size');
+
 			function generate() {
 				
 				let pat = [];
@@ -171,10 +173,14 @@
 					}
 				}
 				
+				let imageSize = parseInt($size.value, 10);
+				canvas.width = imageSize;
+				canvas.height = imageSize;
 
 				ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-				let size = 128;
+				let scale = 2;
+				let size = imageSize / scale;
 				let img = new Uint8Array(size * size);
 				let offsetX = 1,
 					offsetY = 1;
@@ -242,7 +248,7 @@
 					w = ret.width,
 					data = ret.data;
 				
-				let scale = 2;
+				
 				
 				for(let i = 0; i < ret.height; i++) {
 					let y = i / scale ^ 0;
